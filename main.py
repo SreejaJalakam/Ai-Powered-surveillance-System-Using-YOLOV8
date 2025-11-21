@@ -4,8 +4,7 @@ AbnoGuard - AI Surveillance for Abnormality & Abandoned Objects
 Main entry point using YOLOv8 for enhanced detection
 """
 
-import tkinter as tk
-from tkinter import filedialog, messagebox
+import streamlit as st
 import os
 import sys
 from video_runner import VideoRunner
@@ -13,61 +12,53 @@ from utils import setup_directories, check_dependencies
 
 def main():
     """Main entry point for AbnoGuard"""
-    print("🚀 AbnoGuard - AI Surveillance System")
-    print("🔍 Powered by YOLOv8 for Enhanced Detection")
-    print("=" * 50)
+    st.title("🚀 AbnoGuard - AI Surveillance System")
+    st.markdown("🔍 Powered by YOLOv8 for Enhanced Detection")
+    st.markdown("---")
     
     # Setup directories
     setup_directories()
     
     # Check dependencies
     if not check_dependencies():
-        print("❌ Dependencies check failed. Please install required packages.")
+        st.error("❌ Dependencies check failed. Please install required packages.")
         return
     
-    # Create Tkinter root window
-    root = tk.Tk()
-    root.withdraw()  # Hide the main window
-    
-    # Show file picker dialog
-    print("📁 Please select a video file for analysis...")
-    video_path = filedialog.askopenfilename(
-        title="Select Video File for AbnoGuard Analysis",
-        filetypes=[
-            ("Video files", "*.mp4 *.avi *.mov *.mkv *.wmv"),
-            ("All files", "*.*")
-        ]
+    # Streamlit file uploader (replaces Tkinter dialog)
+    st.subheader("📁 Select a video file for analysis")
+    uploaded_file = st.file_uploader(
+        "Choose a video file",
+        type=["mp4", "avi", "mov", "mkv", "wmv"]
     )
     
-    if not video_path:
-        print("❌ No video file selected. Exiting.")
+    if uploaded_file is None:
+        st.info("Please upload a video file to start analysis.")
         return
     
-    if not os.path.exists(video_path):
-        print(f"❌ Video file not found: {video_path}")
-        return
+    # Save uploaded file temporarily
+    temp_video_path = os.path.join("temp_video", uploaded_file.name)
+    os.makedirs("temp_video", exist_ok=True)
     
-    print(f"✅ Selected video: {video_path}")
-    print(f"📊 File size: {os.path.getsize(video_path) / (1024*1024):.1f} MB")
+    with open(temp_video_path, "wb") as f:
+        f.write(uploaded_file.read())
+    
+    st.success(f"✅ Selected video: {uploaded_file.name}")
+    st.write(f"📊 File size: {len(uploaded_file.getbuffer()) / (1024*1024):.1f} MB")
     
     # Run video analysis
-    try:
-        print("\n🎬 Starting video analysis with YOLOv8...")
-        print("💡 YOLOv8 provides better accuracy and more object classes")
+    if st.button("🎬 Start Video Analysis"):
+        try:
+            st.write("💡 YOLOv8 provides better accuracy and more object classes")
+            st.info("Processing video... Please wait ⏳")
+            
+            runner = VideoRunner(temp_video_path)
+            runner.run()
+            
+            st.success("🎯 AbnoGuard analysis complete!")
+            st.info("📁 Check the 'outputs/' folder for results and alerts")
         
-        runner = VideoRunner(video_path)
-        runner.run()
-        
-    except KeyboardInterrupt:
-        print("\n⏹️  Analysis interrupted by user")
-    except Exception as e:
-        print(f"❌ Error during video analysis: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    print("\n🎯 AbnoGuard analysis complete!")
-    print("📁 Check the 'outputs/' folder for results and alerts")
+        except Exception as e:
+            st.error(f"❌ Error during video analysis: {e}")
 
 if __name__ == "__main__":
     main()
-
